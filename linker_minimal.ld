@@ -5,7 +5,7 @@ MEMORY
   RAM (xrw)  : ORIGIN = 0x20000000, LENGTH = 128K
 }
 
-_estack = 0x20005000;
+_estack =  ORIGIN(RAM) + LENGTH(RAM);  /* = 0x20020000 */
 
 SECTIONS
 {
