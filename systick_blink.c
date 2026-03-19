@@ -13,10 +13,11 @@ void SysTick_Handler(void) {
     tick_count++;
 }
 
+
 int main(void) {
     RCC_AHB1ENR |= (1 << 0);   // Enable GPIOA clock
 
-    GPIOA_MODER |= (1 << 10);   // General purpose output mode for PA (01)
+    GPIOA_MODER |= (1 << 10);   // General purpose output mode for PA5 (01)
     GPIOA_MODER &= ~(1 << 11);
     GPIOA_OTYPER &= ~(1 << 5); // push-pull for PA5
     

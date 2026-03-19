@@ -69,10 +69,8 @@
     .weak SysTick_Handler
     .type  Reset_Handler, %function
 
-    /*
-    *** Currently not used ***
     .weak EXTI0_IRQHandler
-    */
+    .weak USART2_IRQHandler
 
 Reset_Handler:
 

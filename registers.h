@@ -1,5 +1,3 @@
-
-
 #ifndef REGISTERS_H
 #define REGISTERS_H
 
@@ -20,14 +18,15 @@
 
 // universal synchronous asynchronous receiver transmitter
 #define USART2_BASE 0x40004400UL
+#define USART2_SR (*(volatile unsigned int *)(USART2_BASE + 0x00))    // Status register
+#define USART2_DR (*(volatile unsigned int *)(USART2_BASE + 0x04))    // Data register
 #define USART2_BRR (*(volatile unsigned int *)(USART2_BASE + 0x08))   // Baud rate register (USART_BRR)
 #define USART2_CR1 (*(volatile unsigned int *)(USART2_BASE + 0x0C))   // Control register 1 (USART_CR1)
 
 // SysTick registers
-#define SYST_CSR 0xE000E010UL // SysTick Control and Status Register
-#define SYST_RVR 0xE000E014UL // SysTick Reload Value Register
-#define SYST_CVR 0xE000E018UL // SysTick Current Value Register
-#define SYST_CALIB 0xE000E01CUL // SysTick Calibration value Register
+#define SYST_RVR  (*(volatile unsigned int*)0xE000E014UL)
+#define SYST_CVR  (*(volatile unsigned int*)0xE000E018UL)
+#define SYST_CSR  (*(volatile unsigned int*)0xE000E010UL)
 
 #endif
 
