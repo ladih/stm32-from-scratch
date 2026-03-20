@@ -28,6 +28,8 @@
 #define SYST_CVR  (*(volatile unsigned int*)0xE000E018UL)
 #define SYST_CSR  (*(volatile unsigned int*)0xE000E010UL)
 
+#define NVIC_ISER1 (* (volatile unsigned int *)0xE000E104)   //  Interrupt Set-Enable Register
+
 #endif
 
 
