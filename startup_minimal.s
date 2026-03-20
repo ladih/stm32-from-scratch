@@ -27,7 +27,7 @@
     .word 0                  @ 19: RTC Wakeup interrupt through the EXTI line               0x0000 004C
     .word 0                  @ 20: Flash global interrupt                                   0x0000 0050
     .word 0                  @ 21: RCC global interrupt                                     0x0000 0054
-    .word EXTI0_IRQHandler   @ 22: EXTI Line0 interrupt                                     0x0000 0058
+    .word 0 @EXTI0_IRQHandler   @ 22: EXTI Line0 interrupt                                     0x0000 0058
     .word 0                  @ 23: EXTI Line1 interrupt                                     0x0000 005C
     .word 0                  @ 24: EXTI Line2 interrupt                                     0x0000 0060
     .word 0                  @ 25: EXTI Line3 interrupt                                     0x0000 0064
@@ -62,30 +62,23 @@
     .word USART2_IRQHandler  @ 54: USART2 global interrupt                                  0x0000 00D8
     .word 0                  @ 55: USART3 global interrupt                                  0x0000 00DC
 
-
-
-
 .section .text
-    .weak SysTick_Handler
     .type  Reset_Handler, %function
-
-    .weak EXTI0_IRQHandler
-    .weak USART2_IRQHandler
 
 Reset_Handler:
 
-/* Zero-initialize the .bss section in RAM */
+    /* Zero-initialize the .bss section in RAM */
     ldr r2, =_sbss
     ldr r4, =_ebss
     movs r3, #0
     b LoopFillZerobss
 
-FillZerobss:
-    str r3, [r2]
-    adds r2, r2, #4
+    FillZerobss:
+        str r3, [r2]
+        adds r2, r2, #4
 
-LoopFillZerobss:
-    cmp r2, r4
-    bcc FillZerobss
+    LoopFillZerobss:
+        cmp r2, r4
+        bcc FillZerobss
 
-    b main
+        b main
