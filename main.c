@@ -59,7 +59,7 @@ int main(void) {
     uart_init();
     button_init();
 
-    uart_print("\n\n\nWelcome to led blink!\r\n");
+    uart_print("\n\n\n\rWelcome to led blink!\r\n");
     uart_print("Commands:\r\n");
     uart_print("led on\r\n");
     uart_print("led off\r\n");
