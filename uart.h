@@ -1,6 +1,8 @@
 // uart.h
 
-extern volatile char rx_buf[128];
+#define BUF_SIZE 128
+
+extern volatile char rx_buf[BUF_SIZE];
 extern volatile int rx_idx;
 extern volatile int line_ready;
 

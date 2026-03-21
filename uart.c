@@ -1,28 +1,11 @@
 // uart on PA2 
 
 #include "registers.h"
+#include "uart.h"
 
-volatile char rx_buf[50];
+volatile char rx_buf[BUF_SIZE];
 volatile int rx_idx = 0;
 volatile int line_ready = 0;
-
-void USART2_IRQHandler(void) {
-
-    if (USART2_SR & (1 << 5)) {       // if RXNE (Read data register not empty)
-        char c = USART2_DR;
-        if (c == '\r' || c == '\n') {
-            rx_buf[rx_idx] = '\0';
-            line_ready = 1;
-            rx_idx = 0;
-        }
-        else {
-            rx_buf[rx_idx++] = c;
-        }
-        
-        while (!(USART2_SR & (1 << 7))); // wait for TXE (Transmit data register empty)
-        USART2_DR = c;                   // write to DR
-    }
-}
 
 void uart_init(void) {
     // PA2 pin config
@@ -45,6 +28,27 @@ void uart_init(void) {
     USART2_CR1 |= 1 << 2; // enable reciever
     USART2_CR1 |= 1 << 5; // RXNEIE: RXNE interrupt enable
     NVIC_ISER1 |= 1 << 6; // IRQ 38 (32 + 6)... Interrupt Set-Enable Registers USART2
+}
+
+void USART2_IRQHandler(void) {
+
+    if (USART2_SR & (1 << 5)) {       // if RXNE (Read data register not empty)
+        char c = USART2_DR;    // read character
+
+        if (c == '\r' || c == '\n') {
+            rx_buf[rx_idx] = '\0';
+            line_ready = 1;
+            rx_idx = 0;
+        }
+        else {
+            if (rx_idx < BUF_SIZE - 1) {  // leave room for null terminator
+                rx_buf[rx_idx++] = c;
+            }
+        }
+        if (USART2_SR & (1 << 7)) {
+            USART2_DR = c;  // echo if Transmit data register empty (TXE), otherwise skip
+        }
+    }
 }
 
 void uart_print(const char *s) {
