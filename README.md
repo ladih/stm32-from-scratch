@@ -1,5 +1,5 @@
 # LED Blink
-Bare-metal LED blink on STM32F446RE. No HAL, no CMSIS, no RTOS — just registers.
+Bare-metal LED blink on STM32F446RE. No HAL, no CMSIS, no RTOS. Just registers.
 
 ## Features
 - LED blink
