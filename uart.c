@@ -9,30 +9,31 @@ volatile int line_ready = 0;
 
 void uart_init(void) {
     // PA2 pin config
-    RCC_AHB1ENR |= (1 << 0);
-    GPIOA_MODER &= ~(3 << 4);
-    GPIOA_MODER |= (2 << 4);
-    GPIOA_AFRL |= (7 << 8);
+    RCC_AHB1ENR |= (1 << 0);  // IO port A clock enable
+    GPIOA_MODER &= ~(3 << 4); // Reset PA2 moder config
+    GPIOA_MODER |= (2 << 4); // Alternate function mode (10) for pin 2
+    GPIOA_AFRL |= (7 << 8); // AF7 (USART2_TX) for AP2
 
     // PA3 pin config
-    GPIOA_MODER &= ~(3 << 6);
-    GPIOA_MODER |= (2 << 6);
-    GPIOA_AFRL |= (7 << 12);
+    GPIOA_MODER &= ~(3 << 6);   // Reset 
+    GPIOA_MODER |= (2 << 6);    // Alternate function mode
+    GPIOA_AFRL |= (7 << 12);    // AF7 (USART_RX)
 
     // USART config
     RCC_APB1ENR |= (1 << 17); // enable USART2 clock
     USART2_CR1 |= (1 << 13); // enable USART2
     // USART2_CR1 bit 12 = 0  -> 8 data bits used
-    USART2_BRR = 1667; // set baud rate 16 MHz / 9600 = 1667
+    // baud rate register (USART_BRR) - 12-bit mantissa and 4-bit fraction.
+    USART2_BRR = 1667; //  baud = f_c / (16 * USARTDIV)   =>  USARTDIV = f_c / (16 * baud).  USARTDIV_9600 = 16 000 000 / (16 * 9600) = 104.166666667... first four bits are fractional part => plug in 16 * USARTDIV = 1667
     USART2_CR1 |= (1 << 3); // enable transmitter
-    USART2_CR1 |= 1 << 2; // enable reciever
-    USART2_CR1 |= 1 << 5; // RXNEIE: RXNE interrupt enable
-    NVIC_ISER1 |= 1 << 6; // IRQ 38 (32 + 6)... Interrupt Set-Enable Registers USART2
+    USART2_CR1 |= (1 << 2); // enable reciever
+    USART2_CR1 |= (1 << 5); // RXNEIE: RXNE interrupt enable
+    NVIC_ISER1 |= (1 << 6); // Enable IRQ 38 (32 + 6) (USART2_IRQHandler)   via   Interrupt Set-Enable Register (ISER)
 }
 
 void USART2_IRQHandler(void) {
 
-    if (USART2_SR & (1 << 5)) {       // if RXNE (Read data register not empty)
+    if (USART2_SR & (1 << 5)) {       // if Read data register not empty (RXNE)
         char c = USART2_DR;    // read character
 
         if (c == '\r' || c == '\n') {

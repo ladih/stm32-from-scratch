@@ -6,51 +6,10 @@
 #include "uart.h"
 #include "button.h"
 
-int is_led_command(volatile const char *s) {
-    // check if input string is a valid command
-    if (s[0] != 'l' || s[1] != 'e' || s[2] != 'd' || s[3] != ' ') {
-        return 0;
-    }
-    if (s[4] >= '0' && s[4] <= '9') {
-        return 1;
-    }
-    return 0;
-}
-
-int stoi(const char *s) {  // parameter if non-volatile because "delay" from get_delay is local
-    // integer string to int
-    int val = 0;
-    while (*s != '\0') {
-        val = 10 * val + (*s - '0');
-        s++;
-    }
-    return val;
-}
-
-int get_delay(volatile const char *s) {
-    // input starts with "led i", where "i" is a number 0 to 9.
-    int max_num_chars = 6;
-    char delay[max_num_chars];
-    s += 4; // skip "led "
-    int i = 0;
-    while (*s >= '0' && *s <= '9' && i < max_num_chars - 1) {
-        delay[i] = *s;
-        s++;
-        i++;
-    }
-    delay[i] = '\0';
-
-    return stoi(delay);
-}
-
-
-int scmp(volatile char *s1, const char *s2) {
-    while (*s1 && *s2 && *s1 == *s2) {
-        s1++;
-        s2++;
-    }
-    return *s1 == *s2;
-}
+int is_led_command(volatile const char *s);
+int get_delay(volatile const char *s);
+int scmp(volatile char *s1, const char *s2);
+int stoi(const char *s);
 
 int main(void) {
 
@@ -152,4 +111,58 @@ int main(void) {
             }
         }
     }
+}
+
+
+
+
+
+
+
+
+
+int is_led_command(volatile const char *s) {
+    // check if input string is a valid led command
+    if (s[0] != 'l' || s[1] != 'e' || s[2] != 'd' || s[3] != ' ') {
+        return 0;
+    }
+    if (s[4] >= '0' && s[4] <= '9') {
+        return 1;
+    }
+    return 0;
+}
+
+int stoi(const char *s) {  // parameter if non-volatile because "delay" from get_delay is local
+    // integer string to int
+    int val = 0;
+    while (*s != '\0') {
+        val = 10 * val + (*s - '0');
+        s++;
+    }
+    return val;
+}
+
+int get_delay(volatile const char *s) {
+    // input starts with "led i", where "i" is a number 0 to 9.
+    int max_num_chars = 6;
+    char delay[max_num_chars];
+    s += 4; // skip "led "
+    int i = 0;
+    while (*s >= '0' && *s <= '9' && i < max_num_chars - 1) {
+        delay[i] = *s;
+        s++;
+        i++;
+    }
+    delay[i] = '\0';
+
+    return stoi(delay);
+}
+
+
+int scmp(volatile char *s1, const char *s2) {
+    while (*s1 && *s2 && *s1 == *s2) {
+        s1++;
+        s2++;
+    }
+    return *s1 == *s2;
 }
