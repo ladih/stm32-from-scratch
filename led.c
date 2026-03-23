@@ -8,3 +8,11 @@ void led_init(void) {
     GPIOA_MODER &= ~(1 << 11); // bit 11 = 0         (General purpose output mode for PA5)
     GPIOA_OTYPER &= ~(1 << 5); // GPIO port output type register.  PA5, Output open-drain (0)
 }
+
+void led_on(void) {
+    GPIOA_BSRR |= (1 << 5);
+}
+
+void led_off(void) {
+    GPIOA_BSRR |= (1 << (16 + 5));
+}
