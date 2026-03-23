@@ -32,7 +32,7 @@ void uart_init(void) {
 }
 
 void USART2_IRQHandler(void) {
-
+    
     if (USART2_SR & (1 << 5)) {       // if Read data register not empty (RXNE)
         char c = USART2_DR;    // read character
 
@@ -45,9 +45,9 @@ void USART2_IRQHandler(void) {
             if (rx_idx < BUF_SIZE - 1) {  // leave room for null terminator
                 rx_buf[rx_idx++] = c;
             }
-        }
-        if (USART2_SR & (1 << 7)) {
-            USART2_DR = c;  // echo if Transmit data register empty (TXE), otherwise skip
+            if (USART2_SR & (1 << 7)) {
+                USART2_DR = c;  // echo if Transmit data register empty (TXE), otherwise skip
+            }
         }
     }
 }
