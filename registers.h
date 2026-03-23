@@ -39,9 +39,9 @@
 #define USART2_CR1 (*(volatile unsigned int *)(USART2_BASE + 0x0C))   // Control register 1 (USART_CR1)
 
 // SysTick registers
-#define SYST_RVR  (*(volatile unsigned int *)(0xE000E014UL))
-#define SYST_CVR  (*(volatile unsigned int *)(0xE000E018UL))
-#define SYST_CSR  (*(volatile unsigned int *)(0xE000E010UL))
+#define SYST_CSR  (*(volatile unsigned int *)(0xE000E010UL)) // SysTick Control and Status Register
+#define SYST_RVR  (*(volatile unsigned int *)(0xE000E014UL)) // SysTick Reload Value Register
+#define SYST_CVR  (*(volatile unsigned int *)(0xE000E018UL)) // SysTick Current Value Register
 
 // Interrupt Set-Enable Registers, NVIC_ISER0-NVIC_ISER15
 #define NVIC_ISER1 (*(volatile unsigned int *)(0xE000E104UL))   //     63 - 32
