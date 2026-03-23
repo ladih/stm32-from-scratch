@@ -28,12 +28,13 @@ int main(void) {
     uart_print("led [delay] \r\n\n");
     uart_print("> ");
 
-    int blink_flag = 0;
+    int blink_flag = 0; // LED blinks if blink_flag == 1
 
     unsigned int last_tick = 0; // tick_count at last toggle on/off
     unsigned int current_tick;
+
     int led_state = 0; // led on/off
-    int delay = 100; // delay in ms
+    int delay = 100; // time in ms the LED stays in each led_state
 
     int button_blink_increase = 0;
 
