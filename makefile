@@ -1,6 +1,6 @@
 CC = arm-none-eabi-gcc
 CFLAGS = -mcpu=cortex-m4 -mthumb -nostdlib
-LDFLAGS = -T linker.ld
+LDFLAGS = -T linker_minimal.ld
 SRCS = startup_minimal.s main.c uart.c led.c systick.c button.c
 
 all: blink.bin
