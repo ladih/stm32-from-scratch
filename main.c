@@ -1,4 +1,4 @@
-// led blink, systick, usart, EXTI
+// led control with UART, EXTI, TIM2, SysTick
 
 #include "registers.h"
 #include "led.h"
@@ -7,17 +7,267 @@
 #include "button.h"
 
 #define MIN_DELAY 20
-#define MAX_DELAY 2000
+#define MAX_DELAY 1000
+#define NUM_COMMANDS (sizeof(commands) / sizeof(commands[0]))
+
+typedef struct {
+    int blink_flag;
+    int dim_flag;
+    int delay;
+    int duty;
+    int on_time;
+    int off_time;
+} led_state_t;
+
+led_state_t led_state = {0, 0, 100, 20, 50, 50};
+
+int scmp(const char *s1, const char *s2);
+int starts_with(const char *s, const char *prefix);
+int parse_int(const char *s);
+void scpy(char *s1, const char *s2);
+int slen(const char *s);
+void tim2_init(void);
+void pa5_to_af(void);
+void pa5_to_gpio(void);
+
+void cmd_led_on(char *args);
+void cmd_led_off(char *args);
+void cmd_led_ms(char *args);
+void cmd_dim2(char *args);
+void cmd_blink_on(char *args);
+void cmd_dim(char *args);
+
+typedef void (*cmd_handler_t)(char *args);
+
+typedef struct {
+    const char *name;
+    cmd_handler_t handler;
+    int prefix_match;
+} command_t;
+
+const command_t commands[] = {
+    {"led on", cmd_led_on, 0},
+    {"led off", cmd_led_off, 0},
+    {"led ", cmd_led_ms, 1},
+    {"dim ", cmd_dim, 1},
+    {"dim2 ", cmd_dim2, 1},
+    {"b", cmd_blink_on, 0}
+};
 
 
-int starts_with(volatile const char *s, const char *prefix);
-int is_led_command(volatile const char *s);
-int parse_int(volatile const char *s);
-int scmp(volatile char *s1, const char *s2);
-int stoi(const char *s);
+void cmd_dim(char *args) {
+    if (*args < '0' || *args > '9') {
+        uart_print("\r\nError: Invalid first argument of dim command\r\n");
+        return;
+    }
+    int temp_delay = parse_int(args);
+    while (*args >= '0' && *args <= '9') args++;
+    while (*args == ' ') args++;
+    if (*args < '0' || *args > '9') {
+        uart_print("\r\nError: Invalid second argument of dim command\r\n");
+        return;
+    }
+    pa5_to_gpio();
+    led_state.delay = temp_delay;
+    led_state.duty = parse_int(args);
+    if (led_state.duty <= 0) {
+        led_state.blink_flag = 0;
+        led_state.dim_flag = 0;
+        led_off();
+        uart_print("\r\nTurning LED off (duty <= 0)\r\n");
+    } else if (led_state.duty >= 100) {
+        led_state.blink_flag = 0;
+        led_state.dim_flag = 0;
+        led_on();
+        uart_print("\r\nTurning LED on (duty >= 100)\r\n");
+    } else {
+        led_state.on_time = led_state.delay * led_state.duty / 100;
+        led_state.off_time = led_state.delay - led_state.on_time;
+        led_state.blink_flag = 0;
+        led_state.dim_flag = 1;
+        uart_print("\r\nDelay\tDuty\ton_time\toff_time\r\n");
+        uart_print_int(led_state.delay);
+        uart_print("\t");
+        uart_print_int(led_state.duty);
+        uart_print("\t");
+        uart_print_int(led_state.on_time);
+        uart_print("\t");
+        uart_print_int(led_state.off_time);
+        uart_print("\r\n");
+    }
+}
 
+void cmd_led_on(char *args) {
+    pa5_to_gpio();
+    led_state.blink_flag = 0;
+    led_state.dim_flag = 0;
+    led_on();
+    uart_print("\r\n***Led turned on***\r\n");
+}
 
-void tim2_init() {
+void cmd_led_off(char *args) {
+    pa5_to_gpio();
+    led_state.dim_flag = 0;
+    led_state.blink_flag = 0;
+    led_off();
+    uart_print("\r\n***Led turned off***\r\n");
+}
+
+void cmd_led_ms(char *args) {
+    if (*args < '0' || *args > '9') {
+        uart_print("\r\nError: Bad led command\r\n");
+        return;
+    }
+    pa5_to_gpio();
+    led_state.dim_flag = 0;
+    led_state.blink_flag = 1;
+    led_state.delay = parse_int(args);
+    if (led_state.delay < MIN_DELAY) led_state.delay = MIN_DELAY;
+    uart_print("\r\n***Blinking with ");
+    uart_print_int(led_state.delay);
+    uart_print("ms delay***\r\n");
+}
+
+void cmd_dim2(char *args) {
+    if (*args < '0' || *args > '9') {
+        uart_print("\r\nError: Bad dim2 command\r\n");
+        return;
+    }
+    led_state.dim_flag = 0;
+    led_state.blink_flag = 0;
+    pa5_to_af();
+    int CCR1 = parse_int(args);
+    TIM2_CCR1 = CCR1;
+    uart_print("\r\n***CCR1 changed to ");
+    uart_print_int(TIM2_CCR1);
+    uart_print("***\r\n");
+}
+
+void cmd_blink_on(char *args) {
+    pa5_to_gpio();
+    led_state.blink_flag = 1;
+    led_state.dim_flag = 0;
+    uart_print("\r\n***Blinking started with delay ");
+    uart_print_int(led_state.delay);
+    uart_print("ms***\r\n");
+}
+
+int process_command(char *input) {
+    for (int i = 0; i < NUM_COMMANDS; i++) {
+        if (commands[i].prefix_match) {
+            if (starts_with(input, commands[i].name)) {
+                char *args = input + slen(commands[i].name);
+                commands[i].handler(args);
+                return 1;
+            }
+        }
+        else if (scmp(input, commands[i].name) == 0) {
+                commands[i].handler("");
+                return 1;
+        }
+    }
+    return 0;
+}  
+
+int main(void) {
+
+    led_init();
+    SysTick_Init();
+    uart_init();
+    button_init();  
+    tim2_init();
+
+    uart_print("\n\n\n\rWelcome to led blink!\r\n");
+    uart_print("Commands:\r\n");
+    uart_print("   led on\r\n");
+    uart_print("   led off\r\n");
+    uart_print("   led <ms> \r\n");
+    uart_print("   dim <delay> <duty>\r\n");
+    uart_print("   dim2 <num>\r\n");
+    uart_print("   b\r\n");
+    uart_print("   status (todo)\r\n\n");
+    uart_print("> ");
+
+    unsigned int last_tick = 0; // tick_count at last toggle on/off
+    unsigned int current_tick;
+    int button_blink_increase = 0;
+    int led_is_on = 0;
+
+    while (1) {
+
+        if (button_pressed) {
+            button_pressed = 0;
+            led_state.dim_flag = 0;
+            led_state.blink_flag = 1;
+            pa5_to_gpio();
+            uart_print("***Button press: ");
+            if (button_blink_increase == 1) {
+                led_state.delay *= 2;
+                if (led_state.delay >= MAX_DELAY) {
+                    led_state.delay = MAX_DELAY;
+                    button_blink_increase = !button_blink_increase;
+                }
+                uart_print("blink delay increased to ");
+                uart_print_int(led_state.delay);
+            }
+            else {
+                led_state.delay /= 2;
+                if (led_state.delay <= MIN_DELAY) {
+                    led_state.delay = MIN_DELAY;
+                    button_blink_increase = !button_blink_increase;
+                }
+                uart_print("blink delay decreased to ");
+                uart_print_int(led_state.delay);
+            }            
+            uart_print("ms***\r\n> ");
+        }
+
+        if (line_ready) {
+            line_ready = 0;
+            if (rx_buf[0] == '\0') {
+                    uart_print("\r\n> ");
+                    continue;
+            }
+            char buf[BUF_SIZE];
+            scpy(buf, (char *)rx_buf); // copy volatile data into non-volatile buffer
+            if (!process_command(buf))
+                uart_print("\r\nError: invalid command\r\n");
+            uart_print("> ");
+        }
+
+        if (led_state.blink_flag) {
+            current_tick = get_ticks();
+            if (current_tick - last_tick >= led_state.delay) {            // x - y = x + (~y + 1)
+                last_tick = current_tick;
+                if (led_is_on == 0) {
+                    led_on();
+                }
+                else {
+                    led_off();
+                }
+                led_is_on = !led_is_on;
+            }
+        }
+
+        if (led_state.dim_flag) {
+            current_tick = get_ticks();
+            if (current_tick - last_tick >= led_state.off_time && led_is_on == 0) {
+                last_tick = current_tick;
+                led_is_on = !led_is_on;
+                led_on();
+            }
+            else if (current_tick - last_tick >= led_state.on_time && led_is_on == 1) {
+                last_tick = current_tick;
+                led_is_on = !led_is_on;
+                led_off();
+            }
+        }
+    }
+}
+
+// functions
+
+void tim2_init(void) {
     RCC_APB1ENR |= (1 << 0);
     TIM2_PSC = 15;
     TIM2_ARR = 999;
@@ -44,225 +294,51 @@ void pa5_to_gpio(void) {
     GPIOA_MODER |= (0b01 << 10); // output
 }
 
-
-
-int main(void) {
-
-    led_init();
-    SysTick_Init();
-    uart_init();
-    button_init();  
-    tim2_init();
-
-    uart_print("\n\n\n\rWelcome to led blink!\r\n");
-    uart_print("Commands:\r\n");
-    uart_print("   led on\r\n");
-    uart_print("   led off\r\n");
-    uart_print("   led <ms> \r\n");
-    uart_print("   dim <delay> <duty>\r\n");
-    uart_print("   b\r\n");
-    uart_print("   status\r\n\n");
-    uart_print("> ");
-
-    int blink_flag = 0; // LED blinks if blink_flag == 1
-
-    unsigned int last_tick = 0; // tick_count at last toggle on/off
-    unsigned int current_tick;
-
-    int led_state = 0; // led on/off
-    int delay = 100; // time in ms the LED stays in each led_state
-
-    int button_blink_increase = 0;
-
-
-    int dim_flag = 0;
-    int duty = 20;
-    int on_time = delay * duty / 100;
-    int off_time = delay - on_time;
-
-
-    while (1) {
-        if (button_pressed) {
-            button_pressed = 0;
-            dim_flag = 0;
-
-            pa5_to_gpio();
-
-            if (blink_flag == 0) blink_flag = 1; // start blinking if currently no blink when button is pressed (e.g at reset)
-
-            uart_print("***Button press: ");
-            if (button_blink_increase == 1) {
-                delay *= 2;
-                if (delay >= MAX_DELAY) {
-                    delay = MAX_DELAY;
-                    button_blink_increase = !button_blink_increase;
-                }
-                uart_print("blink delay increased to ");
-                uart_print_int(delay);
-            }
-            else {
-                delay /= 2;
-                if (delay <= MIN_DELAY) {
-                    delay = MIN_DELAY;
-                    button_blink_increase = !button_blink_increase;
-                }
-                uart_print("blink delay decreased to ");
-                uart_print_int(delay);
-            }            
-            uart_print("ms***\r\n> ");
-        }
-
-        if (line_ready) {
-            line_ready = 0;
-            if (rx_buf[0] == '\0') {
-                    uart_print("\r\n> ");
-                    continue;
-            }
-
-            uart_print("\r\n");
-
-            if (scmp(rx_buf, "led on"))  { pa5_to_gpio(); blink_flag=0; dim_flag=0; led_on(); uart_print("***Led turned on***\r\n");}
-            else if (scmp(rx_buf, "led off"))  { pa5_to_gpio(); blink_flag=0; dim_flag=0; led_off(); uart_print("***Led turned off***\r\n");}
-
-            else if (starts_with(rx_buf, "led ") && rx_buf[4] >= '0' && rx_buf[4] <= '9') {
-                pa5_to_gpio();
-                dim_flag = 0;
-                blink_flag = 1;
-                delay = parse_int(rx_buf + 4);
-                if (delay < MIN_DELAY) delay = MIN_DELAY;
-                uart_print("***Blinking with ");
-                uart_print_int(delay);
-                uart_print("ms delay***\r\n");
-            }
-
-            else if (starts_with(rx_buf, "dim2 ") && rx_buf[5] >= '0' && rx_buf[5] <= '9') {
-                dim_flag = 0;
-                blink_flag = 0;
-                pa5_to_af();
-                int CCR1 = parse_int(rx_buf + 5);
-                TIM2_CCR1 = CCR1;
-            }
-
-            else if (starts_with(rx_buf, "dim ") && rx_buf[4] >= '0' && rx_buf[4] <= '9') {
-                pa5_to_gpio();
-                const char *p = (const char *)(rx_buf + 4);
-                delay = parse_int(p);
-                while (*p >= '0' && *p <= '9') p++;
-                while (*p == ' ') p++;
-                duty = parse_int(p);
-
-                if (duty <= 0) {
-                    blink_flag = 0;
-                    dim_flag = 0;
-                    led_off();
-                } else if (duty >= 100) {
-                    blink_flag = 0;
-                    dim_flag = 0;
-                    led_on();
-                } else {
-                    on_time = delay * duty / 100;
-                    off_time = delay - on_time;
-                    blink_flag = 0;
-                    dim_flag = 1;
-                }
-
-                uart_print("Delay\tDuty\ton_time\toff_time\r\n");
-                uart_print_int(delay);
-                uart_print("\t");
-                uart_print_int(duty);
-                uart_print("\t");
-                uart_print_int(on_time);
-                uart_print("\t");
-                uart_print_int(off_time);
-                uart_print("\r\n");
-            }
-
-            else if (scmp(rx_buf, "b")) blink_flag = 1;
-            else if (scmp(rx_buf, "status")) {
-                uart_print("   Blink delay: ");
-                uart_print_int(delay);
-                uart_print("ms\r\n");
-            }
-            else {
-                uart_print("Error: invalid command\r\n");
-            }
-            uart_print("> ");
-        }
-
-        if (blink_flag) {
-            current_tick = get_ticks();
-            if (current_tick - last_tick >= delay) {            // x - y = x + (~y + 1)
-                last_tick = current_tick;
-                if (led_state == 0) {
-                    led_on();
-                }
-                else {
-                    led_off();
-                }
-                led_state = !led_state;
-            }
-        }
-
-        if (dim_flag) {
-            //pa5_to_af();
-            current_tick = get_ticks();
-            if (current_tick - last_tick >= off_time && led_state == 0) {
-                last_tick = current_tick;
-                led_state = !led_state;
-                led_on();
-            }
-            else if (current_tick - last_tick >= on_time && led_state == 1) {
-                last_tick = current_tick;
-                led_state = !led_state;
-                led_off();
-            }
-        }
-    }
-}
-
-
-// functions
-
-int stoi(const char *s) {  // parameter if non-volatile because "delay" from get_delay is local
-    // integer string to int
-    int val = 0;
-    while (*s != '\0') {
-        val = 10 * val + (*s - '0');
-        s++;
-    }
-    return val;
-}
-
-int parse_int(volatile const char *s) {
-    // return "ms" as int from string with form "blink <ms>"
-    int max_num_chars = 6;
-    char delay[max_num_chars];
+int parse_int(const char *s) {
+    if (*s < '0' || *s > '9') return -1;
+    int result = 0;
     int i = 0;
-    while (*s >= '0' && *s <= '9' && i < max_num_chars - 1) {
-        delay[i] = *s;
+    while (*s >= '0' && *s <= '9' && i < 6) {
+        result = result * 10 + (*s - '0');
         s++;
         i++;
     }
-    delay[i] = '\0';
-
-    return stoi(delay);
+    return result;
 }
 
-
-int scmp(volatile char *s1, const char *s2) {
-    while (*s1 && *s2 && *s1 == *s2) {
-        s1++;
-        s2++;
-    }
-    return *s1 == *s2;
-}
-
-
-int starts_with(volatile const char *s, const char *prefix) {
+int starts_with(const char *s, const char *prefix) {
     while (*prefix) {
         if (*s != *prefix) return 0;
         s++;
         prefix++;
     }
     return 1;
+}
+
+void scpy(char* s1, const char* s2) {
+    // copy s2 to s1
+    while (*s2 != '\0') {
+        *s1 = *s2;
+        s1++;
+        s2++;
+    }
+    *s1 = '\0';
+}
+
+int slen(const char *s) {
+    // return len of s
+    int i = 0;
+    while (*s != '\0') {
+        s++;
+        i++;
+    }
+    return i;
+}
+
+int scmp(const char *s1, const char *s2) {
+    while (*s1 && *s2 && *s1 == *s2) {
+        s1++;
+        s2++;
+    }
+    return !(*s1 == *s2);
 }
