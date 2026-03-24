@@ -10,7 +10,7 @@ volatile int line_ready = 0;
 void uart_init(void) {
     // PA2 pin config
     RCC_AHB1ENR |= (1 << 0);  // IO port A clock enable
-    GPIOA_MODER &= ~(3 << 4); // Reset PA2 moder config
+    GPIOA_MODER &= ~(7 << 4); // Reset PA2 moder config
     GPIOA_MODER |= (2 << 4); // Alternate function mode (10) for pin 2
     GPIOA_AFRL |= (7 << 8); // AF7 (USART2_TX) for AP2
 
@@ -31,10 +31,16 @@ void uart_init(void) {
     NVIC_ISER1 |= (1 << 6); // Enable IRQ 38 (32 + 6) (USART2_IRQHandler)   via   Interrupt Set-Enable Register (ISER)
 }
 
+void send_char(char c) {
+    while (!(USART2_SR & (1 << 7))); // wait for TXE
+    USART2_DR = c;
+
+}
+
 void USART2_IRQHandler(void) {
     
-    if (USART2_SR & (1 << 5)) {       // if Read data register not empty (RXNE)
-        char c = USART2_DR;    // read character
+    if (USART2_SR & (1 << 5)) {         // if Read data register not empty (RXNE)
+        char c = USART2_DR;             // read character
 
         if (c == '\r' || c == '\n') {
             rx_buf[rx_idx] = '\0';
@@ -42,11 +48,15 @@ void USART2_IRQHandler(void) {
             rx_idx = 0;
         }
         else {
-            if (rx_idx < BUF_SIZE - 1) {  // leave room for null terminator
-                rx_buf[rx_idx++] = c;
+            if (c == '\x7F') { // backspace
+                if (rx_idx > 0) {
+                    rx_idx--;
+                    uart_print("\b \b");
+                }
             }
-            if (USART2_SR & (1 << 7)) {
-                USART2_DR = c;  // echo if Transmit data register empty (TXE), otherwise skip
+            else if (rx_idx < BUF_SIZE - 1) {  // leave room for null terminator
+                rx_buf[rx_idx++] = c;
+                send_char(c);
             }
         }
     }
@@ -54,10 +64,10 @@ void USART2_IRQHandler(void) {
 
 void uart_print(const char *s) {
     while (*s) {
-        while (!(USART2_SR & (1 << 7)));
-        USART2_DR = *s++;
+        while (!(USART2_SR & (1 << 7))); // TXE
+        USART2_DR = *s++;  // write, then increment
     }
-    while (!(USART2_SR & (1 << 6)));
+    while (!(USART2_SR & (1 << 6)));  // wait for Transmission complete (TC)
 }
 
 void uart_print_int(int n) {
