@@ -68,18 +68,37 @@
 
 Reset_Handler:
 
-    /* Zero-initialize the .bss section in RAM */
-    ldr r2, =_sbss
-    ldr r4, =_ebss
-    movs r3, #0
-    b LoopFillZerobss
 
-    FillZerobss:
-        str r3, [r2]
-        adds r2, r2, #4
+/* Zero-initialize the .bss section in RAM */
+ldr r2, =_sbss
+ldr r4, =_ebss
+movs r3, #0
+b LoopFillZerobss
 
-    LoopFillZerobss:
-        cmp r2, r4
-        bcc FillZerobss
+FillZerobss:
+    str r3, [r2]
+    adds r2, r2, #4
 
-        b main
+LoopFillZerobss:
+    cmp r2, r4
+    bcc FillZerobss
+
+/* Non-zero data */
+ldr r0, =_sdata     /* RAM start */
+ldr r1, =_edata     /* RAM end */
+ldr r2, =_sidata  /* FLASH start */
+movs r3, #0
+b LoopCopyDataInit
+
+CopyDataInit:
+    ldr r4, [r2, r3]
+    str r4, [r0, r3]
+    adds r3, r3, #4
+
+LoopCopyDataInit:
+    adds r4, r0, r3
+    cmp r4, r1
+    bcc CopyDataInit
+
+b main
+
