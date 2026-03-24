@@ -26,5 +26,14 @@ SECTIONS
       *(COMMON)
       _ebss = .;
     } > RAM
+
+  _sidata = LOADADDR(.data);   /* FLASH start */
+  
+  .data :
+  {
+    _sdata = .;    /* RAM start */
+    *(.data*)
+    _edata = .;
+  } > RAM AT    > FLASH
 }
 
