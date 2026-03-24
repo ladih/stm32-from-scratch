@@ -47,6 +47,17 @@
 #define NVIC_ISER1 (*(volatile unsigned int *)(0xE000E104UL))   //     63 - 32
 #define NVIC_ISER2 (*(volatile unsigned int *)(0xE000E108UL))   //     95 - 64
 
+// TIM2 
+#define TIM2_BASE 0x40000000UL
+#define TIM2_CR1 (*(volatile unsigned int *)(TIM2_BASE + 0x00)) // TIMx control register 1 (TIMx_CR1)
+#define TIM2_PSC (*(volatile unsigned int *)(TIM2_BASE + 0x28)) // TIMx prescaler (TIMx_PSC)
+#define TIM2_ARR (*(volatile unsigned int *)(TIM2_BASE + 0x2C)) // TIMx auto-reload register (TIMx_ARR)
+#define TIM2_CCR1 (*(volatile unsigned int *)(TIM2_BASE + 0x34)) // TIMx capture/compare register 1 (TIMx_CCR1)
+#define TIM2_CCMR1 (*(volatile unsigned int *)(TIM2_BASE + 0x18)) // TIMx capture/compare mode register 1 (TIMx_CCMR1)
+#define TIM2_CCER (*(volatile unsigned int *)(TIM2_BASE + 0x20)) // TIMx capture/compare enable register (TIMx_CCER)
+
+
+
 #endif
 
 
