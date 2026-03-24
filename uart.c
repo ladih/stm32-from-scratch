@@ -38,7 +38,6 @@ void send_char(char c) {
 }
 
 void USART2_IRQHandler(void) {
-    
     if (USART2_SR & (1 << 5)) {         // if Read data register not empty (RXNE)
         char c = USART2_DR;             // read character
 
@@ -56,7 +55,7 @@ void USART2_IRQHandler(void) {
             }
             else if (rx_idx < BUF_SIZE - 1) {  // leave room for null terminator
                 rx_buf[rx_idx++] = c;
-                send_char(c);
+                send_char(c); // echo saved character
             }
         }
     }
