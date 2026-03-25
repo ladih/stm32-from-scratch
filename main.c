@@ -185,12 +185,12 @@ int main(void) {
     uart_print("   dim <delay> <duty>\r\n");
     uart_print("   dim2 <num>\r\n");
     uart_print("   b\r\n");
-    uart_print("   status (todo)\r\n\n");
+    uart_print("   status (release soon)\r\n\n");
     uart_print("> ");
 
     unsigned int last_tick = 0; // tick_count at last toggle on/off
     unsigned int current_tick;
-    int button_blink_increase = 0;
+    int button_blink_increase = 1;
     int led_is_on = 0;
 
     while (1) {
