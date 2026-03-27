@@ -27,7 +27,7 @@
     .word 0                     @ 19: RTC Wakeup interrupt through the EXTI line               0x0000 004C
     .word 0                     @ 20: Flash global interrupt                                   0x0000 0050
     .word 0                     @ 21: RCC global interrupt                                     0x0000 0054
-    .word 0 @EXTI0_IRQHandler   @ 22: EXTI Line0 interrupt                                     0x0000 0058
+    .word 0                     @ 22: EXTI Line0 interrupt                                     0x0000 0058
     .word 0                     @ 23: EXTI Line1 interrupt                                     0x0000 005C
     .word 0                     @ 24: EXTI Line2 interrupt                                     0x0000 0060
     .word 0                     @ 25: EXTI Line3 interrupt                                     0x0000 0064
