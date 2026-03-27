@@ -1,14 +1,22 @@
-// led control with UART, EXTI, TIM2, SysTick
+// led control with UART, EXTI, TIM2, SysTick, ADC
 
 #include "registers.h"
 #include "led.h"
 #include "systick.h"
 #include "uart.h"
 #include "button.h"
+#include "adc.h"
+#include "tim2.h"
 
 #define MIN_DELAY 20
 #define MAX_DELAY 1000
 #define NUM_COMMANDS (sizeof(commands) / sizeof(commands[0]))
+
+int scmp(const char *s1, const char *s2);
+int starts_with(const char *s, const char *prefix);
+int parse_int(const char *s);
+void scpy(char *s1, const char *s2);
+int slen(const char *s);
 
 typedef struct {
     int blink_flag;
@@ -18,42 +26,14 @@ typedef struct {
     int on_time;
     int off_time;
 } led_state_t;
-
 led_state_t led_state = {0, 0, 100, 20, 50, 50};
 
-int scmp(const char *s1, const char *s2);
-int starts_with(const char *s, const char *prefix);
-int parse_int(const char *s);
-void scpy(char *s1, const char *s2);
-int slen(const char *s);
-void tim2_init(void);
-void pa5_to_af(void);
-void pa5_to_gpio(void);
-
-void cmd_led_on(char *args);
-void cmd_led_off(char *args);
-void cmd_led_ms(char *args);
-void cmd_dim2(char *args);
-void cmd_blink_on(char *args);
-void cmd_dim(char *args);
-
-typedef void (*cmd_handler_t)(char *args);
-
-typedef struct {
-    const char *name;
-    cmd_handler_t handler;
-    int prefix_match;
-} command_t;
-
-const command_t commands[] = {
-    {"led on", cmd_led_on, 0},
-    {"led off", cmd_led_off, 0},
-    {"led ", cmd_led_ms, 1},
-    {"dim ", cmd_dim, 1},
-    {"dim2 ", cmd_dim2, 1},
-    {"b", cmd_blink_on, 0}
-};
-
+void cmd_temp(char *args) {
+    int t = read_temp_celsius();
+    uart_print("\r\n***The temperature is 0.1 * ");
+    uart_print_int(t);
+    uart_print(" degrees Celsius.***\r\n");
+}
 
 void cmd_dim(char *args) {
     if (*args < '0' || *args > '9') {
@@ -113,7 +93,7 @@ void cmd_led_off(char *args) {
     uart_print("\r\n***Led turned off***\r\n");
 }
 
-void cmd_led_ms(char *args) {
+void cmd_b_ms(char *args) {
     if (*args < '0' || *args > '9') {
         uart_print("\r\nError: Bad led command\r\n");
         return;
@@ -152,6 +132,25 @@ void cmd_blink_on(char *args) {
     uart_print("ms***\r\n");
 }
 
+
+typedef void (*cmd_handler_t)(char *args);
+typedef struct {
+    const char *name;
+    cmd_handler_t handler;
+    int prefix_match;
+} command_t;
+
+const command_t commands[] = {
+    {"led on", cmd_led_on, 0},
+    {"led off", cmd_led_off, 0},
+    {"b ", cmd_b_ms, 1},
+    {"dim ", cmd_dim, 1},
+    {"dim2 ", cmd_dim2, 1},
+    {"b", cmd_blink_on, 0},
+    {"t", cmd_temp, 0},
+};
+
+
 int process_command(char *input) {
     for (int i = 0; i < NUM_COMMANDS; i++) {
         if (commands[i].prefix_match) {
@@ -167,7 +166,7 @@ int process_command(char *input) {
         }
     }
     return 0;
-}  
+}
 
 int main(void) {
 
@@ -176,6 +175,8 @@ int main(void) {
     uart_init();
     button_init();  
     tim2_init();
+    adc_init();
+
 
     uart_print("\n\n\n\rWelcome to led blink!\r\n");
     uart_print("Commands:\r\n");
@@ -185,6 +186,7 @@ int main(void) {
     uart_print("   dim <delay> <duty>\r\n");
     uart_print("   dim2 <num>\r\n");
     uart_print("   b\r\n");
+    uart_print("   t\r\n");
     uart_print("   status (release soon)\r\n\n");
     uart_print("> ");
 
@@ -194,7 +196,7 @@ int main(void) {
     int led_is_on = 0;
 
     while (1) {
-
+        
         if (button_pressed) {
             button_pressed = 0;
             led_state.dim_flag = 0;
@@ -266,33 +268,6 @@ int main(void) {
 }
 
 // functions
-
-void tim2_init(void) {
-    RCC_APB1ENR |= (1 << 0);
-    TIM2_PSC = 15;
-    TIM2_ARR = 999;
-    TIM2_CCR1 = 500;
-
-    TIM2_CCMR1 |= 0b110 << 4;
-    TIM2_CCMR1 |= 1 << 3;
-    TIM2_CCER |= 1 << 0;
-    TIM2_CR1 |= 1 << 7;
-    TIM2_CR1 |= 1 << 0;
-}
-
-
-void pa5_to_af(void) {
-    GPIOA_MODER &= ~(0b11 << 10);
-    GPIOA_MODER |= (0b10 << 10); // alternate function
-
-    GPIOA_AFRL  &= ~(0xF << 20);   // clear AF bits for PA5
-    GPIOA_AFRL  |=  (0x1 << 20);   // AF1 = TIM2
-}
-
-void pa5_to_gpio(void) {
-    GPIOA_MODER &= ~(0b11 << 10);
-    GPIOA_MODER |= (0b01 << 10); // output
-}
 
 int parse_int(const char *s) {
     if (*s < '0' || *s > '9') return -1;
