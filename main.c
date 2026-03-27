@@ -182,7 +182,7 @@ int main(void) {
     uart_print("Commands:\r\n");
     uart_print("   led on\r\n");
     uart_print("   led off\r\n");
-    uart_print("   led <ms> \r\n");
+    uart_print("   b <ms> \r\n");
     uart_print("   dim <delay> <duty>\r\n");
     uart_print("   dim2 <num>\r\n");
     uart_print("   b\r\n");
