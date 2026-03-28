@@ -1,4 +1,4 @@
-// led control with UART, EXTI, TIM2, SysTick, ADC
+// led control and temperature sensing with UART, EXTI, TIM2, SysTick, ADC
 
 #include "registers.h"
 #include "led.h"
@@ -8,6 +8,8 @@
 #include "adc.h"
 #include "tim2.h"
 
+#define APP_START_ADDRESS 0x08008000UL
+#define SCB_VTOR (*(volatile uint32_t*)0xE000ED08)
 #define MIN_DELAY 20
 #define MAX_DELAY 1000
 #define NUM_COMMANDS (sizeof(commands) / sizeof(commands[0]))
@@ -123,13 +125,17 @@ void cmd_dim2(char *args) {
     uart_print("***\r\n");
 }
 
-void cmd_blink_on(char *args) {
+void cmd_blink(char *args) {
     pa5_to_gpio();
-    led_state.blink_flag = 1;
+    led_state.blink_flag = !led_state.blink_flag;
     led_state.dim_flag = 0;
-    uart_print("\r\n***Blinking started with delay ");
-    uart_print_int(led_state.delay);
-    uart_print("ms***\r\n");
+    led_off();
+    if (led_state.blink_flag == 1) {
+        uart_print("\r\n***Blinking started with delay ");
+        uart_print_int(led_state.delay);
+        uart_print("ms***\r\n");
+    }
+    else uart_print("\r\n***Blinking turned off***\r\n");
 }
 
 
@@ -146,10 +152,9 @@ const command_t commands[] = {
     {"b ", cmd_b_ms, 1},
     {"dim ", cmd_dim, 1},
     {"dim2 ", cmd_dim2, 1},
-    {"b", cmd_blink_on, 0},
+    {"b", cmd_blink, 0},
     {"t", cmd_temp, 0},
 };
-
 
 int process_command(char *input) {
     for (int i = 0; i < NUM_COMMANDS; i++) {
@@ -168,7 +173,12 @@ int process_command(char *input) {
     return 0;
 }
 
+
 int main(void) {
+
+    __asm volatile ("cpsie i"); // enable interrupts
+
+    SCB_VTOR = APP_START_ADDRESS; // set base of vector table to APP_START_ADDRESS (using bootloader)
 
     led_init();
     SysTick_Init();
@@ -177,7 +187,8 @@ int main(void) {
     tim2_init();
     adc_init();
 
-
+    // Welcome text
+    led_on();
     uart_print("\n\n\n\rWelcome to led blink!\r\n");
     uart_print("Commands:\r\n");
     uart_print("   led on\r\n");
@@ -187,7 +198,6 @@ int main(void) {
     uart_print("   dim2 <num>\r\n");
     uart_print("   b\r\n");
     uart_print("   t\r\n");
-    uart_print("   status (release soon)\r\n\n");
     uart_print("> ");
 
     unsigned int last_tick = 0; // tick_count at last toggle on/off
@@ -317,3 +327,4 @@ int scmp(const char *s1, const char *s2) {
     }
     return !(*s1 == *s2);
 }
+
