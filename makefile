@@ -15,7 +15,7 @@ $(BUILD_DIR)/blink.bin: $(BUILD_DIR)/blink.elf
 	arm-none-eabi-objcopy -O binary $(BUILD_DIR)/blink.elf $(BUILD_DIR)/blink.bin
 
 flash: $(BUILD_DIR)/blink.bin
-	st-flash write $(BUILD_DIR)/blink.bin 0x08000000
+	st-flash write $(BUILD_DIR)/blink.bin 0x08008000
 
 clean:
 	rm -rf $(BUILD_DIR)
