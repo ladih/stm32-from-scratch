@@ -177,7 +177,6 @@ int process_command(char *input) {
 int main(void) {
 
     __asm volatile ("cpsie i"); // enable interrupts
-
     SCB_VTOR = APP_START_ADDRESS; // set base of vector table to APP_START_ADDRESS (using bootloader)
 
     led_init();

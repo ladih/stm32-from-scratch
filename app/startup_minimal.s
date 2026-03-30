@@ -68,7 +68,6 @@
 
 Reset_Handler:
 
-
 /* Zero-initialize the .bss section in RAM */
 ldr r2, =_sbss
 ldr r4, =_ebss
