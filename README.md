@@ -1,3 +1,7 @@
-CLI for temperature sensing and led control.
+# STM32F446RE Bare-metal CLI
 
-bootloader in progress.
+Bare-metal CLI for temperature sensing and LED control on STM32F446RE.
+
+Features: GPIO, UART, PWM, ADC  
+Programming language: C  
+Bootloader: in progress
