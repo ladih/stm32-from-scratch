@@ -1,7 +1,8 @@
 # STM32F446RE Bare-metal CLI
 
-Bare-metal CLI for temperature sensing and LED control on STM32F446RE.
+A simple CLI for LED control and temperature sensing on the STM32F446RE.
 
-Features: GPIO, UART, PWM, ADC  
-Programming language: C  
-Bootloader: in progress
+- UART-based command interface
+- LED control using GPIO/PWM
+- Temperature readings via ADC
+- Written in C using direct register access
