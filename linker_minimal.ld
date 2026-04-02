@@ -1,7 +1,7 @@
 
 MEMORY
 {
-  FLASH (rx) : ORIGIN = 0x08008000, LENGTH = 512K
+  FLASH (rx) : ORIGIN = 0x08004000, LENGTH = 496K /* Section 0 (16K) for bootloader, total FLASH is 512K, so 496K remaining */
   RAM (xrw)  : ORIGIN = 0x20000000, LENGTH = 128K
 }
 

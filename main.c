@@ -8,8 +8,6 @@
 #include "adc.h"
 #include "tim2.h"
 
-#define APP_START_ADDRESS 0x08008000UL
-#define SCB_VTOR (*(volatile uint32_t*)0xE000ED08)
 #define MIN_DELAY 20
 #define MAX_DELAY 1000
 #define NUM_COMMANDS (sizeof(commands) / sizeof(commands[0]))
@@ -138,7 +136,6 @@ void cmd_blink(char *args) {
     else uart_print("\r\n***Blinking turned off***\r\n");
 }
 
-
 typedef void (*cmd_handler_t)(char *args);
 typedef struct {
     const char *name;
@@ -173,12 +170,8 @@ int process_command(char *input) {
     return 0;
 }
 
-
 int main(void) {
-
-    __asm volatile ("cpsie i"); // enable interrupts
-    SCB_VTOR = APP_START_ADDRESS; // set base of vector table to APP_START_ADDRESS (using bootloader)
-
+    
     led_init();
     SysTick_Init();
     uart_init();
