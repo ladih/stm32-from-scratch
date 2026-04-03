@@ -1,3 +1,4 @@
+// main.c
 // led control and temperature sensing with UART, EXTI, TIM2, SysTick, ADC
 
 #include "registers.h"
@@ -28,10 +29,14 @@ typedef struct {
 } led_state_t;
 led_state_t led_state = {0, 0, 100, 20, 50, 50};
 
-void cmd_temp(char *args) {
+void cmd_temp(char *args) { //todo: take avareage of many readings to get more stable reading
     int t = read_temp_celsius();
-    uart_print("\r\n***The temperature is 0.1 * ");
-    uart_print_int(t);
+    int whole = t / 10;
+    int fraction = t % 10;
+    uart_print("\r\n***The temperature is ");
+    uart_print_int(whole);
+    uart_print(".");
+    uart_print_int(fraction);
     uart_print(" degrees Celsius.***\r\n");
 }
 
