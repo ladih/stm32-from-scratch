@@ -9,8 +9,8 @@
 #include "adc.h"
 #include "tim2.h"
 
-#define MIN_DELAY 20
-#define MAX_DELAY 1000
+#define MIN_DELAY 20 // minimum LED blink delay in ms - Global floor; "b" command and button will never go below this
+#define MAX_DELAY 1000 // maximum LED blink delay in ms - Cap for button-triggered cycles only; "b" command can exceed this
 #define NUM_COMMANDS (sizeof(commands) / sizeof(commands[0]))
 
 int scmp(const char *s1, const char *s2);
