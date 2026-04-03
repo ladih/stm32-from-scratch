@@ -28,6 +28,6 @@ void pa5_to_af(void) {
 }
 
 void pa5_to_gpio(void) {
-    GPIOA_MODER &= ~(0b11 << 10);
+    GPIOA_MODER &= ~(0b11 << 10); // clear moder for pa5
     GPIOA_MODER |= (0b01 << 10); // output
 }
