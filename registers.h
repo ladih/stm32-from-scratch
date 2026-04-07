@@ -3,19 +3,21 @@
 
 #include <stdint.h>
 
-// GPIOA registers
-#define GPIOA_BASE  0x40020000UL
-#define GPIOA_MODER (*(volatile uint32_t *)(GPIOA_BASE + 0x00)) // GPIOA port mode register
-#define GPIOA_OTYPER (*(volatile uint32_t *)(GPIOA_BASE + 0x04)) // GPIOA port output type register
-#define GPIOA_IDR     (*(volatile uint32_t *)(GPIOA_BASE + 0x10)) // GPIOA port input data register
-#define GPIOA_ODR   (*(volatile uint32_t *)(GPIOA_BASE + 0x14)) // GPIOA port output data register
-#define GPIOA_BSRR (*(volatile uint32_t *)(GPIOA_BASE + 0x18)) // GPIOA port bit set/reset register
-#define GPIOA_AFRL   (*(volatile uint32_t *)(GPIOA_BASE + 0x20)) // alternate function low
+// GPIO registers
+typedef struct {
+    volatile uint32_t MODER;
+    volatile uint32_t OTYPER;
+    volatile uint32_t OSPEEDR;
+    volatile uint32_t PUPDR;
+    volatile uint32_t IDR;
+    volatile uint32_t ODR;
+    volatile uint32_t BSRR;
+    volatile uint32_t LCKR;
+    volatile uint32_t AFR[2];
+} GPIO_TypeDef;
 
-// GPIOC registers
-#define GPIOC_BASE 0x40020800UL
-#define GPIOC_MODER (*(volatile uint32_t *)(GPIOC_BASE + 0x00))
-#define GPIOC_PUPDR (*(volatile uint32_t *)(GPIOC_BASE + 0x0C))
+#define GPIOA ((GPIO_TypeDef*) 0x40020000)
+#define GPIOC ((GPIO_TypeDef*) 0x40020800)
 
 // Reset and clock control registers
 #define RCC_BASE 0x40023800UL
@@ -44,12 +46,16 @@
 #define EXTI_FTSR (*(volatile uint32_t *)(EXTI_BASE + 0x0C))     // Falling trigger selection register (EXTI_FTSR)
 #define EXTI_PR (*(volatile uint32_t *)(EXTI_BASE + 0x14))        // Pending register (EXTI_PR)
 
-// universal synchronous asynchronous receiver transmitter
-#define USART2_BASE 0x40004400UL
-#define USART2_SR (*(volatile uint32_t *)(USART2_BASE + 0x00))    // Status register
-#define USART2_DR (*(volatile uint32_t *)(USART2_BASE + 0x04))    // Data register
-#define USART2_BRR (*(volatile uint32_t *)(USART2_BASE + 0x08))   // Baud rate register (USART_BRR)
-#define USART2_CR1 (*(volatile uint32_t *)(USART2_BASE + 0x0C))   // Control register 1 (USART_CR1)
+// Universal Synchronous Asynchronous Receiver Transmitter
+
+typedef struct {
+    volatile uint32_t SR;   // Status register   offset 0x00
+    volatile uint32_t DR;   // Data register     offset 0x04
+    volatile uint32_t BRR;  // Baud rate register       0x08
+    volatile uint32_t CR1;  // Control reguster 1       0x0C
+} USART_TypeDef;
+
+#define USART2 ((USART_TypeDef *) 0x40004400)
 
 // SysTick registers
 #define SYST_CSR  (*(volatile uint32_t *)(0xE000E010UL)) // SysTick Control and Status Register
