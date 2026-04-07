@@ -1,13 +1,15 @@
 // adc.c
 
 #include "registers.h"
+#include <stdint.h>
+#include "uart.h"
 
 void adc_init(void)
 {
     RCC_AHB1ENR |= (1 << 2); // GPIOC clock
     RCC_APB2ENR |= (1 << 8); // ADC1 clock
-    GPIOC_MODER |=  (0b11 << 0); // PC0 Analog mode
-    GPIOC_PUPDR &= ~(0b11 << 0); // PC0 no pull-up/down
+    GPIOC->MODER |=  (0b11 << 0); // PC0 Analog mode
+    GPIOC->PUPDR &= ~(0b11 << 0); // PC0 no pull-up/down
     ADC_CCR &= ~(0b11 << 16); // clock freq. for ADC = PCLK2 / 2 
     ADC1_CR1 &= ~(0b11 << 24); // 00 = 12 bit resolution
     ADC1_CR1 &= ~(1 << 8); // 0: Scan mode disabled
@@ -22,13 +24,26 @@ void adc_init(void)
 
 int read_temp_celsius(void)
 {
-    ADC1_CR2 |= (1 << 30); // start conversion
-    while (!(ADC1_SR & (1 << 1))); // wait for conversion complete
-    int raw = ADC1_DR; // read ADC result
-    int mv = raw * 3300 / 4095; // normalize to get mV
-    int temp_times_10 = mv - 500; // 500 mV = 0 degrees, 10mV = 1 degree
+
+    const uint16_t VCC_MV = 3300;        // supply voltage in mV
+    const uint16_t ADC_VREF_MV = 3300;   // ADC reference voltage in mV
+    const uint16_t ADC_MAX = 4095;
+    const uint16_t SENSOR_OFFSET = 500; // 500 mV = 0 degrees
+
+    const uint16_t n_readings = 50;
+    uint32_t sum = 0;
+
+    for (uint16_t i = 0; i < n_readings; i++) {        
+        ADC1_CR2 |= (1 << 30); // start conversion
+        while (!(ADC1_SR & (0b1 << 1))); // wait for conversion complete (Bit 1: EOC)
+        sum += ADC1_DR; // sum up ADC result
+    }
+
+    uart_print_int(sum);
+    uart_print("\r\n");
+    uint16_t mean = sum / n_readings;
+    uint16_t mv = (uint32_t)mean * ADC_VREF_MV / ADC_MAX; // normalize to get mV
+    int16_t temp_times_10 = (int16_t)mv - SENSOR_OFFSET; // TMP36: 500mV = 0°C, 10mV per °C. Result is temp × 10.
 
     return temp_times_10;
 }
-
-
