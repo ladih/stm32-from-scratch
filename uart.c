@@ -8,38 +8,37 @@ volatile int rx_idx = 0;
 volatile int line_ready = 0;
 
 void uart_init(void) {
-    // PA2 pin config
-    RCC_AHB1ENR |= (0b1 << 0);  // IO port A clock enable
-    GPIOA_MODER &= ~(0b111 << 4); // Reset PA2 moder config
-    GPIOA_MODER |= (0b10 << 4); // Alternate function mode (10) for pin 2
-    GPIOA_AFRL |= (0b111 << 8); // AF7 (USART2_TX) for AP2
+    // PA2 pin config (PA2 is TX)
+    RCC_AHB1ENR |= (0b1 << 0);       // IO port A clock enable
+    GPIOA->MODER &= ~(0b11 << 4);    // Reset PA2 moder config
+    GPIOA->MODER |= (0b10 << 4);      // Alternate function mode (10) for pin 2
+    GPIOA->AFR[0] |= (0b0111 << 8);      // AF7 (USART2 TX) for PA2
 
     // PA3 pin config
-    GPIOA_MODER &= ~(0b11 << 6);   // Reset 
-    GPIOA_MODER |= (0b10 << 6);    // Alternate function mode
-    GPIOA_AFRL |= (0b111 << 12);    // AF7 (USART_RX)
+    GPIOA->MODER &= ~(0b11 << 6);   // Reset moder
+    GPIOA->MODER |= (0b10 << 6);    // Alternate function mode
+    GPIOA->AFR[0] |= (0b0111 << 12);   // AF7 (USART_RX)
 
     // USART config
     RCC_APB1ENR |= (0b1 << 17); // enable USART2 clock
-    USART2_CR1 |= (0b1 << 13); // enable USART2
-    // USART2_CR1 bit 12 = 0  -> 8 data bits used
+    USART2->CR1 |= (0b1 << 13); // enable USART2
+    // USART2->CR1 bit 12 = 0  -> 8 data bits used
     // baud rate register (USART_BRR) - 12-bit mantissa and 4-bit fraction.
-    USART2_BRR = 1667; //  baud = f_c / (16 * USARTDIV)   =>  USARTDIV = f_c / (16 * baud).  USARTDIV_9600 = 16 000 000 / (16 * 9600) = 104.166666667... first four bits are fractional part => plug in 16 * USARTDIV = 1667
-    USART2_CR1 |= (0b1 << 3); // enable transmitter
-    USART2_CR1 |= (0b1 << 2); // enable reciever
-    USART2_CR1 |= (0b1 << 5); // RXNEIE: RXNE interrupt enable
+    USART2->BRR = 0x683; //  baud = f_c / (16 * USARTDIV)   =>  USARTDIV = f_c / (16 * baud).  USARTDIV_9600 = 16 000 000 / (16 * 9600) = 104.166666667... first four bits are fractional part => plug in 16 * USARTDIV = 1667 = 0x683
+    USART2->CR1 |= (0b1 << 3); // enable transmitter
+    USART2->CR1 |= (0b1 << 2); // enable reciever
+    USART2->CR1 |= (0b1 << 5); // RXNEIE: RXNE interrupt enable.    1: An USART interrupt is generated whenever ORE=1 or RXNE=1 in the USART_SR register
     NVIC_ISER1 |= (0b1 << 6); // Enable IRQ 38 (32 + 6) (USART2_IRQHandler)   via   Interrupt Set-Enable Register (ISER)
 }
 
 void send_char(char c) {
-    while (!(USART2_SR & (0b1 << 7))); // wait for TXE
-    USART2_DR = c;
-
+    while (!(USART2->SR & (0b1 << 7))); // wait for TXE
+    USART2->DR = c;
 }
 
 void USART2_IRQHandler(void) {
-    if (USART2_SR & (0b1 << 5)) {         // if Read data register not empty (RXNE)
-        char c = USART2_DR;             // read character
+    if (USART2->SR & (0b1 << 5)) {         // if Read data register not empty (RXNE)
+        char c = USART2->DR;               // read character
 
         if (c == '\r' || c == '\n') {
             rx_buf[rx_idx] = '\0';
@@ -63,10 +62,10 @@ void USART2_IRQHandler(void) {
 
 void uart_print(const char *s) {
     while (*s) {
-        while (!(USART2_SR & (0b1 << 7))); // TXE
-        USART2_DR = *s++;  // write, then increment
+        while (!(USART2->SR & (0b1 << 7))); // Wait for content of TDR register to be transferred into the shift register
+        USART2->DR = *s++;  // write, then increment
     }
-    while (!(USART2_SR & (0b1 << 6)));  // wait for Transmission complete (TC)
+    while (!(USART2->SR & (0b1 << 6)));  // wait for Transmission complete (TC)
 }
 
 void uart_print_int(int n) {
