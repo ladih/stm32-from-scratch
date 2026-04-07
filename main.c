@@ -8,6 +8,7 @@
 #include "button.h"
 #include "adc.h"
 #include "tim2.h"
+#include "main.h"
 
 #define MIN_DELAY 20 // minimum LED blink delay in ms - Global floor; "b" command and button will never go below this
 #define MAX_DELAY 1000 // maximum LED blink delay in ms - Cap for button-triggered cycles only; "b" command can exceed this
@@ -27,9 +28,10 @@ typedef struct {
     int on_time;
     int off_time;
 } led_state_t;
+
 led_state_t led_state = {0, 0, 100, 20, 50, 50};
 
-void cmd_temp(char *args) { //todo: take avareage of many readings to get more stable reading
+void cmd_temp(char *args) {
     int t = read_temp_celsius();
     int whole = t / 10;
     int fraction = t % 10;
