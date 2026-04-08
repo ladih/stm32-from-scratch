@@ -8,7 +8,7 @@
 #include "button.h"
 #include "adc.h"
 #include "tim2.h"
-#include "main.h"
+//#include "main.h"
 
 #define MIN_DELAY 20 // minimum LED blink delay in ms - Global floor; "b" command and button will never go below this
 #define MAX_DELAY 1000 // maximum LED blink delay in ms - Cap for button-triggered cycles only; "b" command can exceed this
@@ -27,9 +27,12 @@ typedef struct {
     int duty;
     int on_time;
     int off_time;
+    unsigned int last_tick; // tick_count at last toggle on/off     ......     current_tick - last_tick:  x - y = x + (~y + 1)
+    int button_blink_increase;    // if 1 a button press increases blink delay
+    int led_is_on;
 } led_state_t;
 
-led_state_t led_state = {0, 0, 100, 20, 50, 50};
+led_state_t g_led_state = {0, 0, 100, 20, 50, 50, 0, 1, 0};
 
 void cmd_temp(char *args) {
     int t = read_temp_celsius();
@@ -55,47 +58,48 @@ void cmd_dim(char *args) {
         return;
     }
     pa5_to_gpio();
-    led_state.delay = temp_delay;
-    led_state.duty = parse_int(args);
-    if (led_state.duty <= 0) {
-        led_state.blink_flag = 0;
-        led_state.dim_flag = 0;
+    g_led_state.delay = temp_delay;
+    g_led_state.duty = parse_int(args);
+    g_led_state.last_tick = get_ticks();
+    if (g_led_state.duty <= 0) {
+        g_led_state.blink_flag = 0;
+        g_led_state.dim_flag = 0;
         led_off();
         uart_print("\r\nTurning LED off (duty <= 0)\r\n");
-    } else if (led_state.duty >= 100) {
-        led_state.blink_flag = 0;
-        led_state.dim_flag = 0;
+    } else if (g_led_state.duty >= 100) {
+        g_led_state.blink_flag = 0;
+        g_led_state.dim_flag = 0;
         led_on();
         uart_print("\r\nTurning LED on (duty >= 100)\r\n");
     } else {
-        led_state.on_time = led_state.delay * led_state.duty / 100;
-        led_state.off_time = led_state.delay - led_state.on_time;
-        led_state.blink_flag = 0;
-        led_state.dim_flag = 1;
+        g_led_state.on_time = g_led_state.delay * g_led_state.duty / 100;
+        g_led_state.off_time = g_led_state.delay - g_led_state.on_time;
+        g_led_state.blink_flag = 0;
+        g_led_state.dim_flag = 1;
         uart_print("\r\nDelay\tDuty\ton_time\toff_time\r\n");
-        uart_print_int(led_state.delay);
+        uart_print_int(g_led_state.delay);
         uart_print("\t");
-        uart_print_int(led_state.duty);
+        uart_print_int(g_led_state.duty);
         uart_print("\t");
-        uart_print_int(led_state.on_time);
+        uart_print_int(g_led_state.on_time);
         uart_print("\t");
-        uart_print_int(led_state.off_time);
+        uart_print_int(g_led_state.off_time);
         uart_print("\r\n");
     }
 }
 
 void cmd_led_on(char *args) {
     pa5_to_gpio();
-    led_state.blink_flag = 0;
-    led_state.dim_flag = 0;
+    g_led_state.blink_flag = 0;
+    g_led_state.dim_flag = 0;
     led_on();
     uart_print("\r\n***Led turned on***\r\n");
 }
 
 void cmd_led_off(char *args) {
     pa5_to_gpio();
-    led_state.dim_flag = 0;
-    led_state.blink_flag = 0;
+    g_led_state.dim_flag = 0;
+    g_led_state.blink_flag = 0;
     led_off();
     uart_print("\r\n***Led turned off***\r\n");
 }
@@ -106,12 +110,12 @@ void cmd_b_ms(char *args) {
         return;
     }
     pa5_to_gpio();
-    led_state.dim_flag = 0;
-    led_state.blink_flag = 1;
-    led_state.delay = parse_int(args);
-    if (led_state.delay < MIN_DELAY) led_state.delay = MIN_DELAY;
+    g_led_state.dim_flag = 0;
+    g_led_state.blink_flag = 1;
+    g_led_state.delay = parse_int(args);
+    if (g_led_state.delay < MIN_DELAY) g_led_state.delay = MIN_DELAY;
     uart_print("\r\n***Blinking with ");
-    uart_print_int(led_state.delay);
+    uart_print_int(g_led_state.delay);
     uart_print("ms delay***\r\n");
 }
 
@@ -120,8 +124,8 @@ void cmd_dim2(char *args) {
         uart_print("\r\nError: Bad dim2 command\r\n");
         return;
     }
-    led_state.dim_flag = 0;
-    led_state.blink_flag = 0;
+    g_led_state.dim_flag = 0;
+    g_led_state.blink_flag = 0;
     pa5_to_af();
     int CCR1 = parse_int(args);
     TIM2_CCR1 = CCR1;
@@ -132,15 +136,18 @@ void cmd_dim2(char *args) {
 
 void cmd_blink(char *args) {
     pa5_to_gpio();
-    led_state.blink_flag = !led_state.blink_flag;
-    led_state.dim_flag = 0;
-    led_off();
-    if (led_state.blink_flag == 1) {
+    g_led_state.blink_flag = !g_led_state.blink_flag;
+    g_led_state.dim_flag = 0;
+    if (g_led_state.blink_flag == 1) {
+        g_led_state.last_tick = get_ticks();
         uart_print("\r\n***Blinking started with delay ");
-        uart_print_int(led_state.delay);
+        uart_print_int(g_led_state.delay);
         uart_print("ms***\r\n");
     }
-    else uart_print("\r\n***Blinking turned off***\r\n");
+    else {
+         led_off();
+         uart_print("\r\n***Blinking turned off***\r\n");
+    }
 }
 
 typedef void (*cmd_handler_t)(char *args);
@@ -199,36 +206,33 @@ int main(void) {
     uart_print("   t\r\n");
     uart_print("> ");
 
-    unsigned int last_tick = 0; // tick_count at last toggle on/off
     unsigned int current_tick;
-    int button_blink_increase = 1;
-    int led_is_on = 0;
 
     while (1) {
         
         if (button_pressed) {
             button_pressed = 0;
-            led_state.dim_flag = 0;
-            led_state.blink_flag = 1;
+            g_led_state.dim_flag = 0;
+            g_led_state.blink_flag = 1;
             pa5_to_gpio();
             uart_print("***Button press: ");
-            if (button_blink_increase == 1) {
-                led_state.delay *= 2;
-                if (led_state.delay >= MAX_DELAY) {
-                    led_state.delay = MAX_DELAY;
-                    button_blink_increase = !button_blink_increase;
+            if (g_led_state.button_blink_increase == 1) {
+                g_led_state.delay *= 2;
+                if (g_led_state.delay >= MAX_DELAY) {
+                    g_led_state.delay = MAX_DELAY;
+                    g_led_state.button_blink_increase = !g_led_state.button_blink_increase;
                 }
                 uart_print("blink delay increased to ");
-                uart_print_int(led_state.delay);
+                uart_print_int(g_led_state.delay);
             }
             else {
-                led_state.delay /= 2;
-                if (led_state.delay <= MIN_DELAY) {
-                    led_state.delay = MIN_DELAY;
-                    button_blink_increase = !button_blink_increase;
+                g_led_state.delay /= 2;
+                if (g_led_state.delay <= MIN_DELAY) {
+                    g_led_state.delay = MIN_DELAY;
+                    g_led_state.button_blink_increase = !g_led_state.button_blink_increase;
                 }
                 uart_print("blink delay decreased to ");
-                uart_print_int(led_state.delay);
+                uart_print_int(g_led_state.delay);
             }            
             uart_print("ms***\r\n> ");
         }
@@ -246,30 +250,30 @@ int main(void) {
             uart_print("> ");
         }
 
-        if (led_state.blink_flag) {
+        if (g_led_state.blink_flag) {
             current_tick = get_ticks();
-            if (current_tick - last_tick >= led_state.delay) {            // x - y = x + (~y + 1)
-                last_tick = current_tick;
-                if (led_is_on == 0) {
+            if (current_tick - g_led_state.last_tick >= g_led_state.delay) {            // x - y = x + (~y + 1)
+                g_led_state.last_tick = current_tick;
+                if (g_led_state.led_is_on == 0) {
                     led_on();
                 }
                 else {
                     led_off();
                 }
-                led_is_on = !led_is_on;
+                g_led_state.led_is_on = !g_led_state.led_is_on;
             }
         }
 
-        if (led_state.dim_flag) {
+        if (g_led_state.dim_flag) {
             current_tick = get_ticks();
-            if (current_tick - last_tick >= led_state.off_time && led_is_on == 0) {
-                last_tick = current_tick;
-                led_is_on = !led_is_on;
+            if (current_tick - g_led_state.last_tick >= g_led_state.off_time && g_led_state.led_is_on == 0) {
+                g_led_state.last_tick = current_tick;
+                g_led_state.led_is_on = !g_led_state.led_is_on;
                 led_on();
             }
-            else if (current_tick - last_tick >= led_state.on_time && led_is_on == 1) {
-                last_tick = current_tick;
-                led_is_on = !led_is_on;
+            else if (current_tick - g_led_state.last_tick >= g_led_state.on_time && g_led_state.led_is_on == 1) {
+                g_led_state.last_tick = current_tick;
+                g_led_state.led_is_on = !g_led_state.led_is_on;
                 led_off();
             }
         }
