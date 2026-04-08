@@ -1,9 +1,9 @@
 // main.c
-// led control and temperature sensing with UART, EXTI, TIM2, SysTick, ADC
+// led control and temperature sensing using UART, EXTI, TIM2, SysTick, ADC
 
 #include "main.h"
 
-led_state_t g_led_state = {0, 0, 100, 20, 50, 50, 0, 1, 0};
+led_state_t g_led_state = {0, 0, 100, 20, 50, 50, 0, 1, 1};
 
 int main(void) {
     
@@ -18,8 +18,7 @@ int main(void) {
     led_on();
     uart_print("\n\n\n\rWelcome to led blink!\r\n");
     uart_print("Commands:\r\n");
-    uart_print("   led on\r\n");
-    uart_print("   led off\r\n");
+    uart_print("   s\r\n");
     uart_print("   b <ms> \r\n");
     uart_print("   dim <delay> <duty>\r\n");
     uart_print("   dim2 <num>\r\n");
