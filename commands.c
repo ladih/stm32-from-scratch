@@ -9,13 +9,12 @@ typedef struct {
 } command_t;
 
 static const command_t commands[] = {
-    {"led on", cmd_led_on, 0},
-    {"led off", cmd_led_off, 0},
-    {"b ", cmd_b_ms, 1},
-    {"dim ", cmd_dim, 1},
-    {"dim2 ", cmd_dim2, 1},
-    {"b", cmd_blink, 0},
-    {"t", cmd_temp, 0},
+    {"s", cmd_s, 0},          // led on/off switch
+    {"b ", cmd_b_ms, 1},      // blink <ms>
+    {"dim ", cmd_dim, 1},     // software pwm
+    {"dim2 ", cmd_dim2, 1},   // hardware pwm
+    {"b", cmd_blink, 0},      // blink toggle on/off
+    {"t", cmd_temp, 0},       // display temperature
 };
 
 #define NUM_COMMANDS (sizeof(commands) / sizeof(commands[0]))
@@ -45,7 +44,7 @@ void cmd_temp(char *args) {
     uart_print_int(whole);
     uart_print(".");
     uart_print_int(fraction);
-    uart_print(" degrees Celsius.***\r\n");
+    uart_print(" degrees Celsius***\r\n");
 }
 
 void cmd_dim(char *args) {
@@ -91,36 +90,21 @@ void cmd_dim(char *args) {
     }
 }
 
-void cmd_led_on(char *args) {
+void cmd_s(char *args) {
     pa5_to_gpio();
     g_led_state.blink_flag = 0;
     g_led_state.dim_flag = 0;
-    led_on();
-    uart_print("\r\n***Led turned on***\r\n");
-}
-
-void cmd_led_off(char *args) {
-    pa5_to_gpio();
-    g_led_state.dim_flag = 0;
-    g_led_state.blink_flag = 0;
-    led_off();
-    uart_print("\r\n***Led turned off***\r\n");
-}
-
-void cmd_b_ms(char *args) {
-    if (*args < '0' || *args > '9') {
-        uart_print("\r\nError: Bad led command\r\n");
-        return;
+    if (g_led_state.led_is_on == 1) {
+        led_off();
+        uart_print("\r\n***Led turned off***\r\n");
     }
-    pa5_to_gpio();
-    g_led_state.dim_flag = 0;
-    g_led_state.blink_flag = 1;
-    g_led_state.delay = parse_int(args);
-    if (g_led_state.delay < MIN_DELAY) g_led_state.delay = MIN_DELAY;
-    uart_print("\r\n***Blinking with ");
-    uart_print_int(g_led_state.delay);
-    uart_print("ms delay***\r\n");
+    else {
+        led_on();
+        uart_print("\r\n***Led turned on***\r\n");
+    }
+    g_led_state.led_is_on = !g_led_state.led_is_on;
 }
+
 
 void cmd_dim2(char *args) {
     if (*args < '0' || *args > '9') {
@@ -137,6 +121,23 @@ void cmd_dim2(char *args) {
     uart_print("***\r\n");
 }
 
+
+void cmd_b_ms(char *args) {
+    if (*args < '0' || *args > '9') {
+        uart_print("\r\nError: Bad led command\r\n");
+        return;
+    }
+    pa5_to_gpio();
+    g_led_state.dim_flag = 0;
+    g_led_state.blink_flag = 1;
+    g_led_state.delay = parse_int(args);
+    if (g_led_state.delay < MIN_DELAY) g_led_state.delay = MIN_DELAY;
+    uart_print("\r\n***Blinking with ");
+    uart_print_int(g_led_state.delay);
+    uart_print("ms delay***\r\n");
+}
+
+
 void cmd_blink(char *args) {
     pa5_to_gpio();
     g_led_state.blink_flag = !g_led_state.blink_flag;
@@ -149,6 +150,7 @@ void cmd_blink(char *args) {
     }
     else {
          led_off();
+         g_led_state.led_is_on = 0;
          uart_print("\r\n***Blinking turned off***\r\n");
     }
 }
