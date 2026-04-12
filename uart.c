@@ -8,15 +8,15 @@ volatile int rx_idx = 0;
 volatile int line_ready = 0;
 
 void uart_init(void) {
-    // PA2 pin config (PA2 is TX)
-    RCC_AHB1ENR |= (0b1 << 0);       // IO port A clock enable
-    GPIOA->MODER &= ~(0b11 << 4);    // Reset PA2 moder config
+    // PA2 pin config (using PA2 for TX)
+    RCC_AHB1ENR |= (0b1 << 0);        // IO port A clock enable
+    GPIOA->MODER &= ~(0b11 << 4);     // Reset PA2 moder config
     GPIOA->MODER |= (0b10 << 4);      // Alternate function mode (10) for pin 2
-    GPIOA->AFR[0] |= (0b0111 << 8);      // AF7 (USART2 TX) for PA2
+    GPIOA->AFR[0] |= (0b0111 << 8);   // AF7 (USART2 TX) for PA2
 
     // PA3 pin config
-    GPIOA->MODER &= ~(0b11 << 6);   // Reset moder
-    GPIOA->MODER |= (0b10 << 6);    // Alternate function mode
+    GPIOA->MODER &= ~(0b11 << 6);      // Reset moder
+    GPIOA->MODER |= (0b10 << 6);       // Alternate function mode
     GPIOA->AFR[0] |= (0b0111 << 12);   // AF7 (USART_RX)
 
     // USART config

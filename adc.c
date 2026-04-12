@@ -39,8 +39,6 @@ int read_temp_celsius(void)
         sum += ADC1_DR; // sum up ADC result
     }
 
-    uart_print_int(sum);
-    uart_print("\r\n");
     uint16_t mean = sum / n_readings;
     uint16_t mv = (uint32_t)mean * ADC_VREF_MV / ADC_MAX; // normalize to get mV
     int16_t temp_times_10 = (int16_t)mv - SENSOR_OFFSET; // TMP36: 500mV = 0°C, 10mV per °C. Result is temp × 10.

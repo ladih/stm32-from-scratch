@@ -14,10 +14,10 @@
     .word 0                  @ 8: Reserved                                                  0x0000 0020
     .word 0                  @ 9: Reserved                                                  0x0000 0024
     .word 0                  @ 10: Reserved                                                 0x0000 0028
-    .word 0                  @ 11: System Service call via SWI instruction (SVCall)         0x0000 002C
+    .word SVC_Handler        @ 11: System Service call via SWI instruction (SVCall)         0x0000 002C
     .word 0                  @ 12: Debug Monitor (Debug Monitor)                            0x0000 0030                    
     .word 0                  @ 13: Reserved                                                 0x0000 0034
-    .word 0                  @ 14: Pendable request for system service (PendSV)             0x0000 0038
+    .word PendSV_Handler     @ 14: Pendable request for system service (PendSV)             0x0000 0038
     .word SysTick_Handler    @ 15: System tick timer (SysTick)                              0x0000 003C
 
     // IRQs (Interrupt Requests) 

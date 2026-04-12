@@ -62,7 +62,7 @@ void cmd_dim(char *args) {
     pa5_to_gpio();
     g_led_state.delay = temp_delay;
     g_led_state.duty = parse_int(args);
-    g_led_state.last_tick = get_ticks();
+    g_led_state.last_tick = xTaskGetTickCount();
     if (g_led_state.duty <= 0) {
         g_led_state.blink_flag = 0;
         g_led_state.dim_flag = 0;
@@ -143,7 +143,7 @@ void cmd_blink(char *args) {
     g_led_state.blink_flag = !g_led_state.blink_flag;
     g_led_state.dim_flag = 0;
     if (g_led_state.blink_flag == 1) {
-        g_led_state.last_tick = get_ticks();
+        g_led_state.last_tick = xTaskGetTickCount();
         uart_print("\r\n***Blinking started with delay ");
         uart_print_int(g_led_state.delay);
         uart_print("ms***\r\n");
