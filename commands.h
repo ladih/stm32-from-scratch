@@ -1,6 +1,8 @@
 // commands.h
 
 int process_command(char *input);
+void ensure_pa5_gpio(void);
+void ensure_pa5_af(void);
 void cmd_temp(char *args);
 void cmd_dim(char *args);
 void cmd_s(char * args);
