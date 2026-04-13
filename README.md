@@ -1,3 +1,3 @@
-LED control and temperature sensing on the STM32F446RE using direct register access (no HAL).
+LED control and temperature sensing on the STM32F446RE.
 
-Main branch uses FreeRTOS; bare-metal branch runs without an RTOS.
+Using FreeRTOS in main branch, no RTOS in bare-metal branch.
