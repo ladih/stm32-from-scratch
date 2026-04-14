@@ -1,3 +1,5 @@
+// main.c
+
 #include "main.h"
 
 led_state_t g_led_state = {
@@ -12,9 +14,12 @@ led_state_t g_led_state = {
 };
 
 SemaphoreHandle_t g_state_mutex;
+SemaphoreHandle_t test_mutex;
 
 // led_task
 void led_task(void *pvParameters) {
+    uart_print("led_task started\r\n");
+
     while (1) {
 
         uint32_t gen; 
@@ -29,8 +34,8 @@ void led_task(void *pvParameters) {
             vTaskDelay(pdMS_TO_TICKS(g_led_state.delay));
 
             if (gen != g_led_state.generation) continue;
-
             led_off();
+
             vTaskDelay(pdMS_TO_TICKS(g_led_state.delay));
         }
         else if (g_led_state.mode == LED_MODE_DIM) {
@@ -45,32 +50,41 @@ void led_task(void *pvParameters) {
     }
 }
 
-// button_task
 
+// button_task
 void button_task(void *pvParameters) {
+    vTaskDelay(pdMS_TO_TICKS(40));
+    uart_print("button_task started\r\n");
+
     while (1) {
         if (button_pressed) {
             button_pressed = 0;
 
-            xSemaphoreTake(g_state_mutex, portMAX_DELAY);
-            g_led_state.mode = LED_MODE_BLINK;
-            if (g_led_state.button_blink_increase) {
-                g_led_state.delay *= 2;
-                if (g_led_state.delay >= MAX_DELAY) {
-                    g_led_state.delay = MAX_DELAY;
-                    g_led_state.button_blink_increase = 0;
-                }
-            } else {
-                g_led_state.delay /= 2;
-                if (g_led_state.delay <= MIN_DELAY) {
-                    g_led_state.delay = MIN_DELAY;
-                    g_led_state.button_blink_increase = 1;
-                }
-            }
-            uint32_t delay = g_led_state.delay;
-            g_led_state.generation++;
-            xSemaphoreGive(g_state_mutex);
+            uint32_t delay = 0;
+            if (1) { //xSemaphoreTake(g_state_mutex, pdMS_TO_TICKS(10)) == pdTRUE) {
 
+                g_led_state.mode = LED_MODE_BLINK;
+                if (g_led_state.button_blink_increase) {
+                    g_led_state.delay *= 2;
+                    if (g_led_state.delay >= MAX_DELAY) {
+                        g_led_state.delay = MAX_DELAY;
+                        g_led_state.button_blink_increase = 0;
+                    }
+                } else {
+                    g_led_state.delay /= 2;
+                    if (g_led_state.delay <= MIN_DELAY) {
+                        g_led_state.delay = MIN_DELAY;
+                        g_led_state.button_blink_increase = 1;
+                    }
+                }
+                delay = g_led_state.delay;
+                g_led_state.generation++;
+                //xSemaphoreGive(g_state_mutex);
+            }
+            else {
+                uart_print("xSemaphoreTake failed for button press\r\n");
+                continue;
+            }
             uart_print("***Button press: blink delay set to ");
             uart_print_int(delay);
             uart_print("ms***\r\n> ");
@@ -80,8 +94,10 @@ void button_task(void *pvParameters) {
 }
 
 // cmd_task
-
 void cmd_task(void *pvParameters) {
+    vTaskDelay(pdMS_TO_TICKS(60));
+    uart_print("cmd_task started\r\n");
+
     while (1) {
         if (line_ready) {
             line_ready = 0;
@@ -100,10 +116,7 @@ void cmd_task(void *pvParameters) {
 }
 
 // main
-
 int main(void) {
-    g_state_mutex = xSemaphoreCreateMutex();
-    configASSERT(g_state_mutex != NULL);
 
     led_init();
     uart_init();
@@ -127,6 +140,7 @@ int main(void) {
     xTaskCreate(cmd_task,    "CMD",    128, NULL, 1, NULL);
 
     vTaskStartScheduler();
+    
     while (1);
 }
 

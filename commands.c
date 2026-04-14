@@ -55,40 +55,41 @@ static void ensure_pa5_af_locked(void) {
 }
 
 void cmd_s(char *args) {
-    xSemaphoreTake(g_state_mutex, portMAX_DELAY);
+    //xSemaphoreTake(g_state_mutex, portMAX_DELAY);
+
     ensure_pa5_gpio_locked();
 
     if (g_led_state.mode != LED_MODE_STATIC) {
         // was blinking/dimming 
         g_led_state.mode = LED_MODE_STATIC;
-        g_led_state.static_on = 0;  // start with led off 
+        g_led_state.static_on = 0;  // start with led off
+        led_off();
     } else {
         // already static -> toggle
         g_led_state.static_on = !g_led_state.static_on;
     }
-
     g_led_state.generation++;
     uint32_t is_on = g_led_state.static_on;
-    xSemaphoreGive(g_state_mutex);
+    //xSemaphoreGive(g_state_mutex);
 
     if (is_on) uart_print("\r\n***Led turned on***\r\n");
     else        uart_print("\r\n***Led turned off***\r\n");
 }
 
 void cmd_blink(char *args) {
-    xSemaphoreTake(g_state_mutex, portMAX_DELAY);
+    //xSemaphoreTake(g_state_mutex, portMAX_DELAY);
     ensure_pa5_gpio_locked();
     if (g_led_state.mode == LED_MODE_BLINK) {
         g_led_state.mode = LED_MODE_STATIC;
         g_led_state.static_on = 0;
         g_led_state.generation++;
-        xSemaphoreGive(g_state_mutex);
+        //xSemaphoreGive(g_state_mutex);
         uart_print("\r\n***Blinking turned off***\r\n");
     } else {
         g_led_state.mode = LED_MODE_BLINK;
         g_led_state.generation++;
         uint32_t delay = g_led_state.delay;
-        xSemaphoreGive(g_state_mutex);
+        //xSemaphoreGive(g_state_mutex);
         uart_print("\r\n***Blinking started with delay ");
         uart_print_int(delay);
         uart_print("ms***\r\n");
@@ -103,12 +104,12 @@ void cmd_b_ms(char *args) {
     uint32_t d = parse_int(args);
     if (d < MIN_DELAY) d = MIN_DELAY;
 
-    xSemaphoreTake(g_state_mutex, portMAX_DELAY);
+    //xSemaphoreTake(g_state_mutex, portMAX_DELAY);
     ensure_pa5_gpio_locked();
     g_led_state.mode = LED_MODE_BLINK;
     g_led_state.delay = d;
     g_led_state.generation++;
-    xSemaphoreGive(g_state_mutex);
+    //xSemaphoreGive(g_state_mutex);
 
     uart_print("\r\n***Blinking with ");
     uart_print_int(d);
@@ -129,13 +130,13 @@ void cmd_dim(char *args) {
     }
     uint32_t off = parse_int(args);
 
-    xSemaphoreTake(g_state_mutex, portMAX_DELAY);
+    //xSemaphoreTake(g_state_mutex, portMAX_DELAY);
     ensure_pa5_gpio_locked();
     g_led_state.mode = LED_MODE_DIM;
     g_led_state.on_time = on;
     g_led_state.off_time = off;
     g_led_state.generation++;
-    xSemaphoreGive(g_state_mutex);
+    //xSemaphoreGive(g_state_mutex);
 
     uart_print("\r\non_time\toff_time\r\n");
     uart_print_int(on);
@@ -151,12 +152,12 @@ void cmd_dim2(char *args) {
     }
     uint32_t ccr = parse_int(args);
 
-    xSemaphoreTake(g_state_mutex, portMAX_DELAY);
+    //xSemaphoreTake(g_state_mutex, portMAX_DELAY);
     ensure_pa5_af_locked();
     g_led_state.mode = LED_MODE_STATIC;
     g_led_state.static_on = 1;  // TIM2 is driving it, consider it "on"
     g_led_state.generation++;
-    xSemaphoreGive(g_state_mutex);
+    //xSemaphoreGive(g_state_mutex);
 
     TIM2_CCR1 = ccr;
     uart_print("\r\n***CCR1 changed to ");
