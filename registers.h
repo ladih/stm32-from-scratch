@@ -6,11 +6,11 @@
 // GPIO registers
 typedef struct {
     volatile uint32_t MODER;
-    volatile uint32_t OTYPER;
-    volatile uint32_t OSPEEDR;
-    volatile uint32_t PUPDR;
-    volatile uint32_t IDR;
-    volatile uint32_t ODR;
+    volatile uint32_t OTYPER;   // 0x4
+    volatile uint32_t OSPEEDR;  // 0x8
+    volatile uint32_t PUPDR;    // 0xC
+    volatile uint32_t IDR;      // 0x10
+    volatile uint32_t ODR;      // 0x14
     volatile uint32_t BSRR;
     volatile uint32_t LCKR;
     volatile uint32_t AFR[2];

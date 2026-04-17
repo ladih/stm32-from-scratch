@@ -1,4 +1,4 @@
-// uart on PA2 
+// uart on PA2
 
 #include "registers.h"
 #include "uart.h"

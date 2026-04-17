@@ -1,5 +1,8 @@
 // main.c
 
+
+// main functionality: communication with MCU via comma
+
 #include "main.h"
 
 led_state_t g_led_state = {
@@ -34,8 +37,8 @@ void led_task(void *pvParameters) {
             vTaskDelay(pdMS_TO_TICKS(g_led_state.delay));
 
             if (gen != g_led_state.generation) continue;
+            
             led_off();
-
             vTaskDelay(pdMS_TO_TICKS(g_led_state.delay));
         }
         else if (g_led_state.mode == LED_MODE_DIM) {
@@ -140,7 +143,7 @@ int main(void) {
     xTaskCreate(cmd_task,    "CMD",    128, NULL, 1, NULL);
 
     vTaskStartScheduler();
-    
+
     while (1);
 }
 
