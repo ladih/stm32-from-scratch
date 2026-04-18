@@ -1,6 +1,6 @@
 .syntax unified
 
-.section .isr_vector,"a",%progbits
+.section .isr_vector, "a"
 
     // System Exceptions 
     .word _estack            @ 0: Stack pointer                                             0x0000 0000

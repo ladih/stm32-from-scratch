@@ -11,12 +11,12 @@ SECTIONS
 {
     .isr_vector :
   {
-    KEEP(*(.isr_vector))
+    *(.isr_vector)
   } > FLASH
 
     .text :
     {
-      *(.text*)
+      *(.text)
     } > FLASH
 
     .bss :
