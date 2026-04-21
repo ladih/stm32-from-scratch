@@ -1,8 +1,5 @@
 // main.c
 
-
-// main functionality: communication with MCU via comma
-
 #include "main.h"
 
 led_state_t g_led_state = {
@@ -21,7 +18,7 @@ SemaphoreHandle_t test_mutex;
 
 // led_task
 void led_task(void *pvParameters) {
-    uart_print("led_task started\r\n");
+    uart_print("\r\nled_task started\r\n");
 
     while (1) {
 
@@ -98,7 +95,7 @@ void button_task(void *pvParameters) {
 
 // cmd_task
 void cmd_task(void *pvParameters) {
-    vTaskDelay(pdMS_TO_TICKS(60));
+    vTaskDelay(pdMS_TO_TICKS(80));
     uart_print("cmd_task started\r\n");
 
     while (1) {
@@ -118,16 +115,12 @@ void cmd_task(void *pvParameters) {
     }
 }
 
-// main
-int main(void) {
 
-    led_init();
-    uart_init();
-    button_init();
-    tim2_init();
-    adc_init();
+void intro_task(void *pvParameters) {
+    vTaskDelay(pdMS_TO_TICKS(120));
 
-    led_on();
+    uart_print("intro_task started");
+
     uart_print("\n\n\n\rWelcome to led blink!\r\n");
     uart_print("Commands:\r\n");
     uart_print("   s\r\n");
@@ -138,12 +131,27 @@ int main(void) {
     uart_print("   t\r\n");
     uart_print("> ");
 
+    vTaskDelete(NULL);
+}
+
+
+// main
+int main(void) {
+
+    led_init();
+    uart_init();
+    button_init();
+    tim2_init();
+    adc_init();
+
     xTaskCreate(led_task,    "LED",    128, NULL, 1, NULL);
     xTaskCreate(button_task, "BUTTON", 128, NULL, 1, NULL);
     xTaskCreate(cmd_task,    "CMD",    128, NULL, 1, NULL);
+    xTaskCreate(intro_task,  "INTRO",  128, NULL, 1, NULL);
 
     vTaskStartScheduler();
 
-    while (1);
+    while(1);
+
 }
 
