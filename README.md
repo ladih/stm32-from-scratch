@@ -1,3 +1,4 @@
-Learning project on STM32F446RE. Uses UART and a button to control a LED and check temperature.
+### Embedded CLI — STM32F446RE
 
-Using FreeRTOS in main branch, no RTOS in bare-metal branch.
+UART command-line interface for peripheral control on STM32F446RE. Commands include LED blinking, software and hardware PWM dimming, and ADC temperature readout. Built with FreeRTOS. Hand-written Makefile build, no IDE dependency. Bare-metal branch available for comparison.
+
