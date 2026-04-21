@@ -9,6 +9,8 @@ CFLAGS = -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard -nostdlib \
 
 LDFLAGS = -T linker_minimal.ld
 
+LDFLAGS += -Wl,--gc-sections,--print-gc-sections
+
 SRCS = startup_minimal.s \
        main.c uart.c led.c button.c adc.c tim2.c utils.c commands.c \
        $(FREERTOS_DIR)/tasks.c \
