@@ -9,9 +9,9 @@ _estack =  ORIGIN(RAM) + LENGTH(RAM);  /* = 0x20020000 */
 
 SECTIONS
 {
-  .isr_vector : { *(.isr_vector) } > FLASH
-  .text : { *(.text) } > FLASH
-  .bss : { _sbss = .; *(.bss) *(COMMON) _ebss = .; } > RAM
+  .isr_vector : { KEEP(*(.isr_vector)) } > FLASH
+  .text : { *(.text) *(.rodata) } > FLASH
+  .bss : { _sbss = .; *(.bss) _ebss = .; } > RAM
 
   _sidata = LOADADDR(.data);   /* start of .data section in FLASH */
   .data :
